@@ -1,0 +1,45 @@
+module fulladder32(
+    input  logic [31:0] a_i,
+    input  logic [31:0] b_i,
+    input  logic        carry_i,
+    output logic [31:0] sum_o,
+    output logic        carry_o
+);
+
+    logic [7:0] carry;  
+    
+
+    genvar i;
+    generate
+        for (i = 0; i < 8; i++) begin : fa4_block
+
+            localparam int LO = i * 4;
+            localparam int HI = LO + 3;
+            
+ 
+            if (i == 0) begin
+                fulladder4 fa4_inst (
+                    .a_i     (a_i[HI:LO]),
+                    .b_i     (b_i[HI:LO]),
+                    .carry_i (carry_i),    
+                    .sum_o   (sum_o[HI:LO]),
+                    .carry_o (carry[i])      
+                );
+            end 
+
+            else begin
+                fulladder4 fa4_inst (
+                    .a_i     (a_i[HI:LO]),
+                    .b_i     (b_i[HI:LO]),
+                    .carry_i (carry[i-1]),   
+                    .sum_o   (sum_o[HI:LO]),
+                    .carry_o (carry[i])
+                );
+            end
+        end
+    endgenerate
+    
+
+    assign carry_o = carry[7];
+
+endmodule
