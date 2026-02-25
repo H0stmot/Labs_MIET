@@ -1,0 +1,5 @@
+тесбенчи взяты с открытого репозитория МПСУ АПС:
+https://github.com/MPSU/APS/blob/master/Labs/01.%20Adder/lab_01.tb_fulladder.sv для однобитного сумматора
+https://github.com/MPSU/APS/blob/master/Labs/01.%20Adder/lab_01.tb_fulladder4.sv для 4-х битного
+https://github.com/MPSU/APS/blob/master/Labs/01.%20Adder/lab_01.tb_fulladder32.sv 32 разрядный тб
+все сумматоры исправно работают, отлследили правильность выходных сигналов на времянке в vivado 
