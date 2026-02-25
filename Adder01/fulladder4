@@ -1,0 +1,16 @@
+module fulladder4(
+  input  logic [3:0] a_i,
+  input  logic [3:0] b_i,
+  input  logic       carry_i,
+  output logic [3:0] sum_o,
+  output logic       carry_o
+);
+
+  logic [4:0] result;
+
+  assign result = {1'b0, a_i} + {1'b0, b_i} + carry_i;
+
+  assign sum_o   = result[3:0];
+  assign carry_o = result[4];
+
+endmodule
