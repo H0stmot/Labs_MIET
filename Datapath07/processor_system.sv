@@ -3,11 +3,9 @@ module processor_system(
   input  logic        rst_i
 );
 
-
   logic [31:0] instr_addr;
   logic [31:0] instr;
   
-
   logic        core_req;
   logic        core_we;
   logic [2:0]  core_size;
@@ -24,11 +22,9 @@ module processor_system(
   logic [31:0] mem_rd;
   logic        mem_ready;
 
-  instr_mem instruction_memory (
-    .read_addr_i (instr_addr), 
-    .read_data_o (instr)       
-  );
-
+  // Новые провода для подсистемы прерываний
+  logic        irq_req;
+  logic        irq_ret;
 
   processor_core core (
     .clk_i        (clk_i),
@@ -41,10 +37,27 @@ module processor_system(
     .mem_size_o   (core_size),  
     .mem_req_o    (core_req),     
     .mem_we_o     (core_we),      
-    .mem_wd_o     (core_wd)       
+    .mem_wd_o     (core_wd),
+    .irq_req_i    (irq_req),      // Подключение провода запроса
+    .irq_ret_o    (irq_ret)       // Подключение провода ответа
   );
 
-
+  instr_mem instruction_memory (
+    .read_addr_i (instr_addr), 
+    .read_data_o (instr)       
+  );
+  
+  data_mem data_memory (
+    .clk_i          (clk_i),
+    .mem_req_i      (mem_req),     
+    .write_enable_i (mem_we),       
+    .byte_enable_i  (mem_be),      
+    .addr_i         (mem_addr),    
+    .write_data_i   (mem_wd),       
+    .read_data_o    (mem_rd),     
+    .ready_o        (mem_ready)     
+  );
+  
   lsu lsu_integration (
     .clk_i        (clk_i),
     .rst_i        (rst_i),
@@ -65,17 +78,5 @@ module processor_system(
     .mem_rd_i     (mem_rd),
     .mem_ready_i  (mem_ready)
   );
-
-
-  data_mem data_memory (
-    .clk_i          (clk_i),
-    .mem_req_i      (mem_req),     
-    .write_enable_i (mem_we),       
-    .byte_enable_i  (mem_be),      
-    .addr_i         (mem_addr),    
-    .write_data_i   (mem_wd),       
-    .read_data_o    (mem_rd),     
-    .ready_o        (mem_ready)     
-  );
-  
+    
 endmodule
