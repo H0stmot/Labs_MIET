@@ -3,10 +3,11 @@ module processor_system(
   input  logic        rst_i
 );
 
+
   logic [31:0] instr_addr;
   logic [31:0] instr;
   
-  
+
   logic        core_req;
   logic        core_we;
   logic [2:0]  core_size;
@@ -15,7 +16,6 @@ module processor_system(
   logic [31:0] core_rd;
   logic        stall;
 
-  
   logic        mem_req;
   logic        mem_we;
   logic [3:0]  mem_be;
@@ -24,52 +24,27 @@ module processor_system(
   logic [31:0] mem_rd;
   logic        mem_ready;
 
-//логика stall теперь находиться в LSU
- /* logic stall;
-  logic stall_next;
-
-  assign stall_next = mem_req & (~stall);
-
-  always_ff @(posedge clk_i) begin
-    if (rst_i) begin
-      stall <= 1'b0;
-    end else begin
-      stall <= stall_next;
-    end
-  end*/
-
- processor_core core (
-   .clk_i        (clk_i),
-   .rst_i        (rst_i),
-   .stall_i      (stall),
-   .instr_addr_o (instr_addr),
-   .instr_i      (instr),
-   .mem_rd_i     (core_rd),      
-   .mem_addr_o   (core_addr),   
-   .mem_size_o   (core_size),  
-   .mem_req_o    (core_req),     
-   .mem_we_o     (core_we),      
-   .mem_wd_o     (core_wd)      
- );
-
-
   instr_mem instruction_memory (
     .read_addr_i (instr_addr), 
     .read_data_o (instr)       
   );
-  
 
-  data_mem data_memory (
-    .clk_i          (clk_i),
-    .mem_req_i      (mem_req),     
-    .write_enable_i (mem_we),       
-    .byte_enable_i  (mem_be),      
-    .addr_i         (mem_addr),    
-    .write_data_i   (mem_wd),       
-    .read_data_o    (mem_rd),     
-    .ready_o        (mem_ready)     
+
+  processor_core core (
+    .clk_i        (clk_i),
+    .rst_i        (rst_i),
+    .stall_i      (stall),
+    .instr_addr_o (instr_addr),
+    .instr_i      (instr),
+    .mem_rd_i     (core_rd),      
+    .mem_addr_o   (core_addr),   
+    .mem_size_o   (core_size),  
+    .mem_req_o    (core_req),     
+    .mem_we_o     (core_we),      
+    .mem_wd_o     (core_wd)       
   );
-  
+
+
   lsu lsu_integration (
     .clk_i        (clk_i),
     .rst_i        (rst_i),
@@ -89,6 +64,18 @@ module processor_system(
     .mem_wd_o     (mem_wd),
     .mem_rd_i     (mem_rd),
     .mem_ready_i  (mem_ready)
-    );
-    
+  );
+
+
+  data_mem data_memory (
+    .clk_i          (clk_i),
+    .mem_req_i      (mem_req),     
+    .write_enable_i (mem_we),       
+    .byte_enable_i  (mem_be),      
+    .addr_i         (mem_addr),    
+    .write_data_i   (mem_wd),       
+    .read_data_o    (mem_rd),     
+    .ready_o        (mem_ready)     
+  );
+  
 endmodule

@@ -1,4 +1,3 @@
-
 import decoder_pkg::*;
 
 module lsu(
@@ -24,27 +23,27 @@ module lsu(
   input  logic        mem_ready_i
 );
 
-  assign mem_req_o = core_req_i;
-  assign mem_we_o = core_we_i;
+  assign mem_req_o  = core_req_i;
+  assign mem_we_o   = core_we_i;
   assign mem_addr_o = core_addr_i;
 
   logic stall_reg;
+  
   
   always_ff @(posedge clk_i or posedge rst_i) begin
     if (rst_i) begin
       stall_reg <= 1'b0;
     end else begin
-      stall_reg <= core_req_i & (~mem_ready_i | stall_reg);
+     
+      stall_reg <= core_req_i & ~stall_reg; 
     end
   end
   
   assign core_stall_o = stall_reg;
   
- 
   logic [1:0] byte_offset;
   assign byte_offset = core_addr_i[1:0];
   
-
   always_comb begin
     case (core_size_i)
       LDST_B: begin  
@@ -63,7 +62,6 @@ module lsu(
     endcase
   end
   
-
   always_comb begin
     case (core_size_i)
       LDST_B: begin
@@ -81,7 +79,6 @@ module lsu(
     endcase
   end
   
-
   logic [31:0] read_data;
   logic [31:0] extended_data;
   
