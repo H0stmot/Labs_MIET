@@ -59,7 +59,9 @@ module processor_core (
   logic [31:0] alu_a;
   logic [31:0] alu_b;
   logic [31:0] alu_result;
+  logic [31:0] ex_result;
   logic        alu_flag;
+  logic [63:0] real_mul_result;
 
   // Константы
   logic [31:0] imm_I;
@@ -151,12 +153,24 @@ module processor_core (
     .result_o (alu_result)
   );
 
+  real_mul #(
+    .IS_DOUBLE (0)
+  ) real_mul_unit (
+    .clk    (clk_i),
+    .rst    (rst_i),
+    .op1    ({32'b0, RD1}),
+    .op2    ({32'b0, RD2}),
+    .result (real_mul_result)
+  );
+
+  assign ex_result = (alu_op == ALU_REAL_MUL) ? real_mul_result[31:0] : alu_result;
+
   assign mem_addr_o = alu_result;
 
   // Мультиплексор записи
   always_comb begin
     case (wb_sel)
-      WB_EX_RESULT: wb_data = alu_result; 
+      WB_EX_RESULT: wb_data = ex_result; 
       WB_LSU_DATA:  wb_data = mem_rd_i;   
       2'b10:        wb_data = csr_wd;     // Вывод данных из CSR (значение 2)
       default:      wb_data = alu_result;

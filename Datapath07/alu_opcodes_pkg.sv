@@ -35,4 +35,7 @@ localparam ALU_NE   = 5'b11001;
 localparam ALU_SLTS = 5'b00010;
 localparam ALU_SLTU = 5'b00011;
 
+// custom floating-point single-precision multiply
+localparam ALU_REAL_MUL = 5'b10000;
+
 endpackage

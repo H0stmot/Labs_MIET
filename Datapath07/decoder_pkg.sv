@@ -74,6 +74,7 @@ package decoder_pkg;
   export alu_opcodes_pkg::ALU_NE;
   export alu_opcodes_pkg::ALU_SLTS;
   export alu_opcodes_pkg::ALU_SLTU;
+  export alu_opcodes_pkg::ALU_REAL_MUL;
 
   export csr_pkg::CSR_RW;
   export csr_pkg::CSR_RS;
