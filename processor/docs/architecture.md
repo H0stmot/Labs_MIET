@@ -2,14 +2,7 @@
 
 ## Верхний уровень
 
-```mermaid
-flowchart LR
-    IMEM[Память инструкций] --> CORE[Процессорное ядро]
-    CORE --> LSU[LSU]
-    LSU <--> DMEM[Память данных]
-    IRQ[Внешний IRQ] --> CORE
-    CORE --> IRQRET[irq_ret]
-```
+![Верхний уровень процессорной системы](images/processor_system.png)
 
 `processor_system` связывает четыре основных блока:
 
@@ -20,21 +13,7 @@ flowchart LR
 
 ## Ядро
 
-```mermaid
-flowchart LR
-    PC[PC] --> DEC[Декодер]
-    DEC --> RF[Регистровый файл]
-    RF --> ALU[АЛУ]
-    RF --> FMUL[REAL_MUL]
-    ALU --> WB[Writeback mux]
-    FMUL --> WB
-    LSUIN[Данные LSU] --> WB
-    CSR[CSR] --> WB
-    WB --> RF
-    DEC --> PC
-    IRQ[IRQ / exception] --> CSR
-    CSR --> PC
-```
+![Архитектура процессорного ядра](images/processor_core.png)
 
 Ядро выполняет инструкцию без классического конвейера. Счётчик команд
 обновляется на фронте тактового сигнала, а LSU при обращении к памяти формирует
