@@ -8,6 +8,12 @@ module alu (
 
   import alu_opcodes_pkg::*;    // импорт параметров, содержащих
                                 // коды операций для АЛУ
+
+  wire signed [63:0] mul_ss = $signed(a_i) * $signed(b_i);
+  wire        [63:0] mul_uu = a_i * b_i;
+  wire signed [64:0] mul_su = $signed({a_i[31], a_i}) *
+                              $signed({1'b0, b_i});
+
   always_comb begin
     case(alu_op_i)
       ALU_ADD:  result_o = a_i + b_i;
@@ -23,6 +29,11 @@ module alu (
                                     
       ALU_SLTS: result_o = {31'b0, ($signed(a_i) < $signed(b_i))};
       ALU_SLTU: result_o = {31'b0, (a_i < b_i)};
+
+      ALU_MUL:    result_o = mul_uu[31:0];
+      ALU_MULH:   result_o = mul_ss[63:32];
+      ALU_MULHSU: result_o = mul_su[63:32];
+      ALU_MULHU:  result_o = mul_uu[63:32];
       default:  result_o = 32'b0;
     endcase
   end

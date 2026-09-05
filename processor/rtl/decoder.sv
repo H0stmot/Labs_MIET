@@ -14,7 +14,9 @@ module decoder (
   output logic         branch_o,
   output logic         jal_o,
   output logic         jalr_o,
-  output logic         mret_o
+  output logic         mret_o,
+  output logic         ecall_o,
+  output logic         ebreak_o
 );
 
   import decoder_pkg::*;
@@ -42,6 +44,8 @@ module decoder (
     jal_o           = 1'b0;           // Безусловный JAL отключен
     jalr_o          = 1'b0;           // Безусловный JALR отключен
     mret_o          = 1'b0;           // Возврат из прерывания отключен
+    ecall_o         = 1'b0;
+    ebreak_o        = 1'b0;
 
 
 
@@ -158,17 +162,23 @@ module decoder (
             3'b000: begin
               if      (func7 == 7'b0000000) alu_op_o = ALU_ADD; // ADD
               else if (func7 == 7'b0100000) alu_op_o = ALU_SUB; // SUB
-              else if (func7 == 7'b0000001) alu_op_o = ALU_REAL_MUL; // REAL_MUL
+              else if (func7 == 7'b0000001) alu_op_o = ALU_MUL; // MUL
               else illegal_instr_o = 1'b1;
             end
             3'b001: begin
-              if (func7 == 7'b0000000) alu_op_o = ALU_SLL; else illegal_instr_o = 1'b1;
+              if      (func7 == 7'b0000000) alu_op_o = ALU_SLL;
+              else if (func7 == 7'b0000001) alu_op_o = ALU_MULH;
+              else illegal_instr_o = 1'b1;
             end
             3'b010: begin
-              if (func7 == 7'b0000000) alu_op_o = ALU_SLTS; else illegal_instr_o = 1'b1;
+              if      (func7 == 7'b0000000) alu_op_o = ALU_SLTS;
+              else if (func7 == 7'b0000001) alu_op_o = ALU_MULHSU;
+              else illegal_instr_o = 1'b1;
             end
             3'b011: begin
-              if (func7 == 7'b0000000) alu_op_o = ALU_SLTU; else illegal_instr_o = 1'b1;
+              if      (func7 == 7'b0000000) alu_op_o = ALU_SLTU;
+              else if (func7 == 7'b0000001) alu_op_o = ALU_MULHU;
+              else illegal_instr_o = 1'b1;
             end
             3'b100: begin
               if (func7 == 7'b0000000) alu_op_o = ALU_XOR; else illegal_instr_o = 1'b1;
@@ -187,6 +197,16 @@ module decoder (
           endcase
         end
 
+        // Пользовательская инструкция умножения FP32
+        CUSTOM_0_OPCODE: begin
+          if ((func3 == 3'b000) && (func7 == 7'b0000000)) begin
+            alu_op_o = ALU_REAL_MUL;
+            gpr_we_o = 1'b1;
+          end else begin
+            illegal_instr_o = 1'b1;
+          end
+        end
+
         // SYSTEM: ecall, ebreak, mret, CSR
         SYSTEM_OPCODE: begin
           case (func3)
@@ -194,9 +214,9 @@ module decoder (
               if (fetched_instr_i[31:20] == 12'b001100000010) begin
                 mret_o = 1'b1; // MRET
               end else if (fetched_instr_i[31:20] == 12'b000000000000) begin
-                illegal_instr_o = 1'b1; // ECALL
+                ecall_o = 1'b1;
               end else if (fetched_instr_i[31:20] == 12'b000000000001) begin
-                illegal_instr_o = 1'b1; // EBREAK
+                ebreak_o = 1'b1;
               end else begin
                 illegal_instr_o = 1'b1;
               end
@@ -232,6 +252,8 @@ module decoder (
       gpr_we_o  = 1'b0;
       csr_we_o  = 1'b0;
       mret_o    = 1'b0;
+      ecall_o   = 1'b0;
+      ebreak_o  = 1'b0;
     end
   end
 

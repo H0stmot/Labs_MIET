@@ -36,6 +36,8 @@ module processor_core (
   logic        csr_we;
   logic        illegal_instr;
   logic        mret;
+  logic        ecall;
+  logic        ebreak;
 
   // Оригинальные сигналы памяти 
   logic        dec_mem_req;
@@ -50,6 +52,7 @@ module processor_core (
   logic [31:0] mtvec;
   logic [31:0] irq_cause;
   logic [31:0] mcause_mux;
+  logic        exception;
 
   // Сигналы регистрового файла
   logic [31:0] RD1;
@@ -63,7 +66,8 @@ module processor_core (
   logic [31:0] alu_result;
   logic [31:0] ex_result;
   logic        alu_flag;
-  logic [63:0] real_mul_result;
+  logic [31:0] real_mul_result;
+  logic [ 3:0] real_mul_flags;
 
   // Константы
   logic [31:0] imm_I;
@@ -83,8 +87,11 @@ module processor_core (
   assign imm_Z = { 27'b0, instr_i[19:15] };
 
   // Логика исключений
-  assign trap = irq | illegal_instr;
-  assign mcause_mux = illegal_instr ? 32'h0000_0002 : irq_cause;
+  assign exception = illegal_instr | ecall | ebreak;
+  assign trap = irq | exception;
+  assign mcause_mux = illegal_instr ? 32'h0000_0002 :
+                      ebreak        ? 32'h0000_0003 :
+                      ecall         ? 32'h0000_000b : irq_cause;
 
   // Маскирование запросов к памяти при исключениях
   assign mem_req_o = dec_mem_req & ~trap;
@@ -106,7 +113,9 @@ module processor_core (
     .branch_o        (branch),
     .jal_o           (jal),
     .jalr_o          (jalr),
-    .mret_o          (mret)            
+    .mret_o          (mret),
+    .ecall_o         (ecall),
+    .ebreak_o        (ebreak)
   );
 
   // Запись в регистровый файл блокируется при stall или trap
@@ -155,17 +164,20 @@ module processor_core (
     .result_o (alu_result)
   );
 
-  real_mul #(
-    .IS_DOUBLE (0)
-  ) real_mul_unit (
-    .clk    (clk_i),
-    .rst    (rst_i),
-    .op1    ({32'b0, RD1}),
-    .op2    ({32'b0, RD2}),
-    .result (real_mul_result)
+  // Комбинационная часть FM для одинарной точности
+  fp_mul_datapath #(
+    .EXP_W  (8),
+    .MANT_W (23)
+  ) float_mul_unit (
+    .op_a       (RD1),
+    .op_b       (RD2),
+    .op_c       (32'b0),
+    .round_mode (2'b11),
+    .result     (real_mul_result),
+    .flags      (real_mul_flags)
   );
 
-  assign ex_result = (alu_op == ALU_REAL_MUL) ? real_mul_result[31:0] : alu_result;
+  assign ex_result = (alu_op == ALU_REAL_MUL) ? real_mul_result : alu_result;
 
   assign mem_addr_o = alu_result;
 
@@ -213,7 +225,7 @@ module processor_core (
   interrupt_controller irq_ctrl (
     .clk_i       (clk_i),
     .rst_i       (rst_i),
-    .exception_i (illegal_instr),
+    .exception_i (exception),
     .irq_req_i   (irq_req_i),
     .mie_i       (mie[3]),       // MIE-бит
     .mret_i      (mret),

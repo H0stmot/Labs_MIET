@@ -1,74 +1,66 @@
-module rounding_module (
-    input wire [1:0] round_mode,          // Режим округления
-    input wire [TOTAL_WIDTH-1:0] input_value,  // Входное значение
-    input wire sign_bit,                  // Знаковый бит (отдельный вход)
-    output wire [HIGH_PART_WIDTH-1:0] rounded, // Округленное значение
-    output wire precision_flag,           // Флаг точности
-    output wire overflow_flag,            // Флаг переполнения
-    output wire no_rounding_flag          // Флаг отсутствия округления
+// Модуль округления произведения мантисс.
+// Режимы: 00 - к нулю, 01 - к +inf, 10 - к -inf,
+// 11 - к ближайшему четному числу.
+module rounding_module #(
+    parameter MANT_W = 23
+)(
+    input  wire [1:0]          round_mode,
+    input  wire                sign_bit,
+    input  wire [2*MANT_W+3:0] input_value,
+    input  wire signed [15:0]  shift_value,
+    output reg  [MANT_W+1:0]   rounded_value,
+    output reg                 inexact_flag
 );
 
-    parameter IS_DOUBLE = 0;
-    parameter HIGH_PART_WIDTH = (IS_DOUBLE) ? 52 : 23;
-    parameter LOW_PART_WIDTH = (IS_DOUBLE) ? 53 : 24;
-    parameter TOTAL_WIDTH = (IS_DOUBLE) ? 106 : 48;
-    
-    wire increment_needed;                // Нужен ли инкремент
-    wire [HIGH_PART_WIDTH-1:0] high_part; // Основная часть числа
-    wire [LOW_PART_WIDTH-1:0] low_part;   // Младшие биты для округления
-    wire [HIGH_PART_WIDTH-1:0] incremented_value; // Значение после инкремента
-    wire overflow_detected;               // Обнаружено переполнение
-    
-    // Разделение числа на основную и дробную части
-    assign high_part = input_value[TOTAL_WIDTH-1:LOW_PART_WIDTH];
-    assign low_part = input_value[LOW_PART_WIDTH-1:0];
-    
-    // Вычисление инкремента для каждого режима округления
-    wire increment_zero;      // Округление к нулю
-    wire increment_pinf;      // Округление к +inf
-    wire increment_ninf;      // Округление к -inf
-    wire increment_nearest;   // Округление к ближайшему четному
-    
-    // Округление к нулю
-    assign increment_zero = 1'b0;
-    
-    // Округление к +inf - инкремент если положительное число и есть дробная часть
-    assign increment_pinf = (!sign_bit) && (|low_part);
-    
-    // Округление к -inf - инкремент если отрицательное число и есть дробная часть
-    assign increment_ninf = sign_bit && (|low_part);
-    
-    // Округление к ближайшему четному
+    localparam PRODUCT_WIDTH = 2 * MANT_W + 4;
 
-    wire msb_guard = low_part[LOW_PART_WIDTH-1];
-    wire other_guard_bits = |low_part[LOW_PART_WIDTH-2:0];
-    wire lsb_high = high_part[0];
-    assign increment_nearest = msb_guard && (other_guard_bits || lsb_high);
-    
-    // Выбор инкремента на основе режима округления
-    assign increment_needed = 
-        (round_mode == 2'b00) ? increment_zero :
-        (round_mode == 2'b01) ? increment_pinf :
-        (round_mode == 2'b10) ? increment_ninf :
-        increment_nearest;
-    
-    // Вычисление инкрементированного значения
-    assign incremented_value = high_part + increment_needed;
-    
-    // Проверка на переполнение (все биты high_part равны 1 и есть инкремент)
-    assign overflow_detected = (&high_part) && increment_needed;
-    
-    // Финальное округленное значение
+    reg [MANT_W:0] kept_value;
+    reg guard_bit;
+    reg sticky_bit;
+    reg increment_needed;
+    integer index;
 
-    assign rounded = overflow_detected ? 
-                     {1'b0, {(HIGH_PART_WIDTH-1){1'b1}}} : 
-                     incremented_value;
-    
-    // Флаги
-    assign precision_flag = (low_part == {LOW_PART_WIDTH{1'b0}});  // Нет дробной части
-    assign overflow_flag = overflow_detected;
-    assign no_rounding_flag = !increment_needed;      // Округления не было
+    always @* begin
+        kept_value = {MANT_W+1{1'b0}};
+        guard_bit = 1'b0;
+        sticky_bit = 1'b0;
+        increment_needed = 1'b0;
+
+        if (shift_value <= 0) begin
+            kept_value = input_value << (-shift_value);
+        end else if (shift_value >= PRODUCT_WIDTH) begin
+            kept_value = {MANT_W+1{1'b0}};
+            sticky_bit = |input_value;
+        end else begin
+            kept_value = input_value >> shift_value;
+            guard_bit = input_value[shift_value-1];
+
+            for (index = 0; index < PRODUCT_WIDTH; index = index + 1) begin
+                if (index < shift_value-1) begin
+                    sticky_bit = sticky_bit | input_value[index];
+                end
+            end
+        end
+
+        inexact_flag = guard_bit || sticky_bit;
+
+        case (round_mode)
+            2'b00: begin
+                increment_needed = 1'b0;
+            end
+            2'b01: begin
+                increment_needed = !sign_bit && inexact_flag;
+            end
+            2'b10: begin
+                increment_needed = sign_bit && inexact_flag;
+            end
+            default: begin
+                increment_needed = guard_bit &&
+                                   (sticky_bit || kept_value[0]);
+            end
+        endcase
+
+        rounded_value = {1'b0, kept_value} + increment_needed;
+    end
 
 endmodule
-
-

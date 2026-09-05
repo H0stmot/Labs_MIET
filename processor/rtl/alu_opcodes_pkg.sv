@@ -38,4 +38,10 @@ localparam ALU_SLTU = 5'b00011;
 // custom floating-point single-precision multiply
 localparam ALU_REAL_MUL = 5'b10000;
 
+// RV32M multiplication operations
+localparam ALU_MUL    = 5'b10001;
+localparam ALU_MULH   = 5'b10010;
+localparam ALU_MULHSU = 5'b10011;
+localparam ALU_MULHU  = 5'b10100;
+
 endpackage

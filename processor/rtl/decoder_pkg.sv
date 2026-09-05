@@ -15,6 +15,7 @@ package decoder_pkg;
 
   // opcodes
   localparam LOAD_OPCODE     = 5'b00_000;
+  localparam CUSTOM_0_OPCODE = 5'b00_010;
   localparam MISC_MEM_OPCODE = 5'b00_011;
   localparam OP_IMM_OPCODE   = 5'b00_100;
   localparam AUIPC_OPCODE    = 5'b00_101;

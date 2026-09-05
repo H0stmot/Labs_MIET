@@ -1,6 +1,6 @@
 module instr_mem #(
   parameter INIT_FILE  = "programs/program.mem",
-  parameter INIT_WORDS = 6
+  parameter INIT_WORDS = 36
 )
 (
   input  logic [31:0] read_addr_i,
